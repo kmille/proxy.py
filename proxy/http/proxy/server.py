@@ -363,8 +363,8 @@ class HttpProxyPlugin(HttpProtocolHandlerPlugin):
             # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Connection
             # connection headers are meant for communication between client and
             # first intercepting proxy.
-            self.request.add_headers(
-                [(b'Via', b'1.1 %s' % PROXY_AGENT_HEADER_VALUE)])
+            #self.request.add_headers(
+                #[(b'Via', b'1.1 %s' % PROXY_AGENT_HEADER_VALUE)])
             # Disable args.disable_headers before dispatching to upstream
             self.server.queue(
                 memoryview(self.request.build(
