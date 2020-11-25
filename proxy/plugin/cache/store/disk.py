@@ -20,6 +20,8 @@ from ....http.parser import HttpParser
 
 from .base import CacheStore
 
+import datetime
+
 logger = logging.getLogger(__name__)
 
 
@@ -40,15 +42,32 @@ class OnDiskCacheStore(CacheStore):
         self.cache_file: Optional[BinaryIO] = None
 
     def open(self, request: HttpParser) -> None:
-        self.cache_file_path = os.path.join(
-            self.cache_dir,
-            '%s-%s.txt' % (text_(request.host), self.uid.hex))
+        now = f"{datetime.datetime.now():%d.%m.%Y-%H%M%S}"
+        file_name = "{} - {} - {} {}.log".format(now, 
+                                                 request.host.decode(),
+                                                 request.method.decode(),
+                                                 request.path.decode().replace("/", "|"))
+        self.cache_file_path = os.path.join(self.cache_dir, file_name)
+        print(self.cache_file_path)
         self.cache_file = open(self.cache_file_path, "wb")
 
     def cache_request(self, request: HttpParser) -> Optional[HttpParser]:
+        request_line = "{} {} {}\n".format(request.method.decode(),
+                                           request.path.decode(),
+                                           request.version.decode())
+        if self.cache_file:
+            self.cache_file.write(request_line.encode())
+            for __, header in request.headers.items():
+                header_name, header_value = header
+                self.cache_file.write("{}: {}\n".format(header_name.decode(), header_value.decode()).encode())
+            if request.body:
+                self.cache_file.write("\n{}".format(request.body.decode().encode()))
+            if request.method != b"CONNECT":
+                self.cache_file.write(b"\n=========================== BEGIN RESPONSE ===========================\n\n")
         return request
 
     def cache_response_chunk(self, chunk: memoryview) -> memoryview:
+        # this is called multiple times
         if self.cache_file:
             self.cache_file.write(chunk.tobytes())
         return chunk
